@@ -72,7 +72,38 @@ def hackaton(images,n_doc,ac_key,s_key):
     data["n_doc"]=n_doc
     return data
 
+#MAKE PDF
+def plot_points(path_im,data,path_to_save):
+    data["point"]=data[['left_rectangle', 'top_rectangle','width_rectangle', 'height_rectangle']].apply(lambda x:[x[0],x[1],x[2],x[3]],axis=1)
+    im = np.array(Image.open(path_im).convert('RGB'))
+    fig,ax = plt.subplots(1)
+    ax.imshow(im)
+    for i in data["point"].values:
+        ax.add_patch(patches.Rectangle((i[0],i[1]),i[2],i[3],linewidth=.3,edgecolor='b',facecolor='none'))
+    plt.axis('off')
+    spec = plt.imshow
+    plt.savefig(path_to_save,bbox_inches='tight', pad_inches=0,dpi=600)
+def plot_wo_points(path_im,path_to_save):
+    im = np.array(Image.open(path_im).convert('RGB'))
+    fig,ax = plt.subplots(1)
+    ax.imshow(im)
+    plt.axis('off')
+    spec = plt.imshow
+    plt.savefig(path_to_save,bbox_inches='tight', pad_inches=0,dpi=600)
+def makePdf(pdfFileName, listPages, directory = ''):
+    if (directory):
+        directory += "/"
 
+    cover = Image.open(directory + str(listPages[0]) )
+    width, height = cover.size
+
+    pdf = FPDF(unit = "pt", format = [width, height])
+
+    for page in listPages:
+        pdf.add_page()
+        pdf.image(directory + str(page) , 0, 0)
+
+    pdf.output(directory + pdfFileName + ".pdf", "F")
 
 ##UTILIDAD NETA
 def montos(lista_texto):
