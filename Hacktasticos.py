@@ -142,3 +142,36 @@ def utilidad_neta(data):
         data["utilidad_neta"]=0
         utilidad_neta=[]
     return utilidad_neta,data
+
+
+
+def costo_ventas(data):
+    utilidad=['costos de ventas',"costo de ventas","costo de venta"
+ 'costos por ventas',
+ 'costo de actividades ordinarias',"costos por verta","costo por verta"]
+    texto=" ".join(data["Text"].values)
+    texto=texto.lower()
+    
+    dictio={}
+    for uti in utilidad:
+        text_p=texto[texto.find(uti) :texto.find(uti)+80]
+        text_p=cut_string(uti,text_p)
+        if len(text_p)>0:
+            text_p=" ".join(text_p).replace("(nota 12)","")
+          
+            uti_text=text_p.split(" ")
+            uti_text=[x.strip() for x in uti_text]
+           
+            mon=montos(uti_text)
+            dictio.update({uti:mon})
+    print(dictio)
+    dictio = dict(filter(lambda elem: len(elem[1]) > 0, dictio.items()))
+    dictio = dict(filter(lambda elem: elem[1]== max(dictio.values()), dictio.items()))
+    try:
+        search=list(dictio.keys())[0]+" ".join(list(dictio.values())[0])
+        data["costos_ventas"]=data["Text"].map(lambda x:((search in x.lower())*1 or (x.lower() in search)*1) and len(x)>3)
+        search=list(dictio.values())[0]
+    except:
+        search=[]
+        data["costos_ventas"]=0
+    return search,data
