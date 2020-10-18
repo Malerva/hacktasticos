@@ -33,8 +33,8 @@ from glob import glob
 from io import BytesIO
 
 PATH=os.path.dirname(os.path.realpath(__file__))
-ac_key="AKIAV2EWUFAKQ3YOI5G5"
-s_key="SQ51A+CFCeNh4ltfn6SbcbDZSsjghkrmcL+7ttM2"
+ac_key=""
+s_key=""
 print(PATH)
 def textract_respond(file_doc,ACCESS_KEY ,SECRET_KEY):
     with open(file_doc, 'rb') as document:
