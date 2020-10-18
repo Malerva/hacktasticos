@@ -32,9 +32,10 @@ from pdf2image import convert_from_path
 from glob import glob
 from io import BytesIO
 
-
-
-
+PATH=os.path.dirname(os.path.realpath(__file__))
+ac_key="AKIAV2EWUFAKQ3YOI5G5"
+s_key="SQ51A+CFCeNh4ltfn6SbcbDZSsjghkrmcL+7ttM2"
+print(PATH)
 def textract_respond(file_doc,ACCESS_KEY ,SECRET_KEY):
     with open(file_doc, 'rb') as document:
         imageBytes = bytearray(document.read())
@@ -71,7 +72,43 @@ def hackaton(images,n_doc,ac_key,s_key):
     data.reset_index(drop=True,inplace=True)
     data["n_doc"]=n_doc
     return data
+def medida_aux(medida,texto):
+    len_medida = len(medida.split())
+    len_texto = len(texto.split())
+    if len_medida != len_texto:
+        medida = " ".join(texto.split()[:len_medida+1])
+    return medida
 
+def unidad_medida(data):
+    texto=" ".join(data["Text"].values)
+    texto=texto.lower()
+    list_medida= ['millones de pesos', 
+                  'miles de pesos', 
+                  'miles de', 
+                  'millones de pesos', 
+                  'miles',
+                  'millones',
+                  'pesos',
+                  'usd',
+                  'dolares',
+                  'euros'
+                         ]
+    lista_aux = []
+    for x in list_medida:
+        if x in texto:
+            lista_aux.append(x)
+            aux = x
+            break
+    try:
+        data["medida"] = data["Text"].map(lambda x:(find(x,lista_aux))*1)
+        medida = [x for x in data[data['medida']==1]['Text'].unique()][0].lower()
+        texto_medida = medida[medida.find(aux):]
+        medida_final = medida_aux(aux, texto_medida)
+        medida_final =  medida_final.replace(')','').replace(',','').replace(',','')
+    except:
+        data['medida'] = 0
+        texto_medida = 0
+    return medida_final,data
 #MAKE PDF
 def plot_points(path_im,data,path_to_save):
     data["point"]=data[['left_rectangle', 'top_rectangle','width_rectangle', 'height_rectangle']].apply(lambda x:[x[0],x[1],x[2],x[3]],axis=1)
@@ -652,3 +689,78 @@ def func_fecha(data):
     fecha = data.fecha
     data = data.drop('fecha',axis=1)
     return fecha,data
+
+def fecha(data):
+    texto=" ".join(data["Text"].values)
+    texto=texto.lower()
+    año = []
+    for x in range(21):
+        x_ = str(x).zfill(2)
+        año.append(f'20{x_}')
+    list_fecha= fecha_lista = ['enero', 'febrero', 'marzo', 'abril', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']+año
+    lista_aux = []
+    for x in list_fecha:
+        if x in texto:
+            lista_aux.append(x)
+    try:
+        data["fecha"] = data["Text"].map(lambda x:(find(x,lista_aux))*1)
+        fecha_final = [x for x in data[data['fecha']==1]['Text'].unique()]
+    except:
+        data['fecha'] = 0
+        texto_fecha = []
+    return fecha_final,data
+
+
+def interpretador_inteligente(path_pdf,path_save):
+    
+    
+    name=os.path.basename(path_pdf)
+    name=name[:name.find(".")]
+    images = convert_from_path(path_pdf)
+    images_list=[]
+
+    #os.makedirs(path_images)
+    #print(path_images)
+    for ima in range(len(images)):
+        #ftp.storbinary(f"img_{ima}.png", temp.getvalue())
+        #print(os.path.join(path_images,f"img_{ima}.png"))
+        
+        images[ima].save(os.path.join(path_save,f"img_{ima}.png"))
+        
+    images=glob(os.path.join(path_save,"**.png"))
+    images=natsorted(images)
+    n_doc=1
+    data=hackaton(images,n_doc,ac_key,s_key)
+    
+    utilidad_neta_lista,data=utilidad_neta(data)
+    unidad_medida_list,data=unidad_medida(data)
+    costo_ventas_lista,data=costo_ventas(data)
+    caja_bancos_lista,data=caja_bancos(data)
+    ventas_lista,data=ventas(data)
+    patrimonio_lista,data=patrimonio(data)
+    total_activo_lista,data=total_activo(data)
+    total_pasivo_lista,data=total_pasivo(data)
+    utilidad_operacional_lista,data=utilidad_operacional(data)
+    func_utilidadBruta_lista,data=func_utilidadBruta(data)
+    func_fecha_lista,data=fecha(data)
+
+    data_data=pd.DataFrame({"Documento":[f"Documento_{1}"],
+                           "Unidad Medida":unidad_medida_list,
+        #"Fecha":["|".join(func_fecha_lista)],
+        "Fecha":["|".join(func_fecha_lista)],
+                  "Caja y Bancos":["|".join(caja_bancos_lista)],
+                  "Total Activo":["|".join(total_activo_lista)],
+                  "Total Pasivo":["|".join(total_pasivo_lista)],
+                  "Total Patrimonio":["|".join(patrimonio_lista)],
+                  "Ventas":["|".join(ventas_lista)],
+                  "Costo Ventas":["|".join(costo_ventas_lista)],
+                  #"Utilidad Bruta":["|".join(func_utilidadBruta_lista)],
+                  "Utilidad Bruta":"",
+                  "Utilidad Operacional":["|".join(utilidad_operacional_lista)],
+                  "Utilidad Neta":["|".join(utilidad_neta_lista)],
+                 })
+    images=glob(os.path.join(path_save,"**.png"))
+    [os.remove(ima) for ima in images]
+    data_data.reset_index(drop=True,inplace=True)
+    data_data.to_csv(os.path.join(path_save,"doc.csv"),index=False)
+    return data_data
